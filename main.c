@@ -10,6 +10,7 @@
  * Code for XY-Plotter for ECE 298: Instrumentation and Prototyping Labratory
  */
 
+
 char ADCState = 0; //Busy state of the ADC
 int16_t ADCResult = 0; //Storage for the ADC conversion result
 
@@ -60,13 +61,13 @@ void main(void)
     //Initialize Variables
     volatile unsigned int i;
     enum Mode {stepper, servo, hallEffect};
-    enum Mode mode = servo;
+    enum Mode mode = stepper;
 
-    //Set GPIOs
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN6);
-    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN0);
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN3);
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN4);
+    //Stepper Motor
+    GPIO_setAsOutputPin(STEPPER_A_PORT, STEPPER_A_PIN);
+    GPIO_setAsOutputPin(STEPPER_B_PORT, STEPPER_B_PIN);
+    GPIO_setAsOutputPin(STEPPER_C_PORT, STEPPER_C_PIN);
+    GPIO_setAsOutputPin(STEPPER_D_PORT, STEPPER_D_PIN);
 
     //HallEffect
     GPIO_setAsInputPinWithPullUpResistor(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
@@ -108,83 +109,6 @@ void main(void)
             }
         }
 
-
-        //Buttons SW1 and SW2 are active low (1 until pressed, then 0)
-        /*if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 1) & (buttonState == 0)) //Look for rising edge
-        {
-            Timer_A_stop(TIMER_A0_BASE);    //Shut off PWM signal
-            buttonState = 1;                //Capture new button state
-        }
-        if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 0) & (buttonState == 1)) //Look for falling edge
-        {
-            Timer_A_outputPWM(TIMER_A0_BASE, &param);   //Turn on PWM
-            buttonState = 0;                            //Capture new button state
-        }*/
-
-        // Hall Effect
-        /*if(GPIO_getInputPinValue(GPIO_PORT_P2, GPIO_PIN5) != 0)
-        {
-            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
-        }
-        if(GPIO_getInputPinValue(GPIO_PORT_P2, GPIO_PIN5) == 0)
-        {
-            GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
-        }*/
-
-        // Servo
-        /*if(i >= 1000){
-            i = 0;
-            if(param.dutyCycle >= 2500) {
-                param.dutyCycle = 500;
-                Timer_A_outputPWM(TIMER_A0_BASE, &param);
-            } else {
-                param.dutyCycle += 1000;
-                Timer_A_outputPWM(TIMER_A0_BASE, &param);
-            }
-        }
-        i++;*/
-
-        // Stepper
-
-        /*if(mode == servo){
-            j = 500;
-            while(j > 0){
-                j--;
-            }
-
-            if(count >= 4){
-                count = 0;
-            }
-
-            if(count == 0){
-                GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
-                GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN0);
-                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
-            }
-            else if(count == 1){
-                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
-                GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN0);
-                GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
-                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
-            }
-            else if(count == 2){
-                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
-                GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN0);
-                GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
-                GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
-            }
-            else if(count == 3){
-                GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
-                GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN0);
-                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-                GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
-            }
-
-            count++;
-        }*/
-
-
         // Keypad (* button only)
         if (GPIO_getInputPinValue(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN) == 1){
             changeMode = 1;
@@ -192,12 +116,6 @@ void main(void)
             waitForButtonRelease(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN, 1);
             GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
         }
-//        if (GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 0){
-//            changeMode = 1;
-//            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
-//            waitForButtonRelease(SW1_PORT, SW1_PIN, 0);
-//            GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
-//        }
     }
 
     /*
@@ -231,42 +149,37 @@ void runStepper(){
         }
 
         if(count == 0){
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN0);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+            GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+            GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+            GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
         }
         else if(count == 1){
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN0);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+            GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+            GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+            GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
         }
         else if(count == 2){
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN0);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+            GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+            GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+            GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
         }
         else if(count == 3){
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN0);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+            GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+            GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+            GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
         }
         count++;
 
-        /*if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 0)){
-            changeMode = 1;
-            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
-            waitForButtonRelease(SW1_PORT, SW1_PIN, 0);
-        }*/
         // Keypad (* button only)
         if (GPIO_getInputPinValue(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN) == 1){
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN0);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+            GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+            GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+            GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
 
             changeMode = 1;
             GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
@@ -293,15 +206,6 @@ void runServo(){
         }
         i++;
 
-        /*if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 0)){
-            Timer_A_stop(TIMER_A0_BASE);    //Shut off PWM signal
-
-            changeMode = 1;
-            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
-            waitForButtonRelease(SW1_PORT, SW1_PIN, 0);
-            GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
-            break;
-        }*/
         // Keypad (* button only)
         if (GPIO_getInputPinValue(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN) == 1){
               Timer_A_stop(TIMER_A0_BASE);    //Shut off PWM signal
