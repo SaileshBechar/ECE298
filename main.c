@@ -5,8 +5,9 @@
 #include "Board.h"
 
 /*
- * This project contains some code samples that may be useful.
- *
+ * Matyszczuk, Michael
+ * Bechar, Sailesh
+ * Code for XY-Plotter for ECE 298: Instrumentation and Prototyping Labratory
  */
 
 char ADCState = 0; //Busy state of the ADC
