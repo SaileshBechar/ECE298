@@ -139,7 +139,7 @@ void runStepper(){
     int i;
 
     while(1){
-        i = 500;
+        /*i = 500;
         while(i > 0){
             i--;
         }
@@ -172,7 +172,15 @@ void runStepper(){
             GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
             GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
         }
-        count++;
+        count++;*/
+        
+        if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 0)){
+            forwardStep();
+        }
+
+        if ((GPIO_getInputPinValue(SW2_PORT, SW2_PIN) == 0)){
+            backwardStep();
+        }
 
         // Keypad (* button only)
         if (GPIO_getInputPinValue(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN) == 1){
@@ -186,6 +194,91 @@ void runStepper(){
             waitForButtonRelease(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN, 1);
             GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
             break;
+        }
+    }
+}
+
+void forwardStep(){
+    int phase = 1;
+    int i;
+
+    while(1){
+        i = 500;
+        while(i > 0){
+            i--;
+        }
+
+        if(phase <= 4){
+            switch(phase){
+                case 1:
+                    GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+                    break;
+                case 2:
+                    GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+                    break;
+                case 3:
+                    GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+                    break;
+                case 4:
+                    GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+                    break;
+            }
+            phase++;
+        }
+    }
+}
+
+void backwardStep(){
+    int phase = 1;
+    int i;
+
+    while(1){
+        i = 500;
+        while(i > 0){
+            i--;
+        }
+
+        if(phase <= 4){
+            switch(phase){
+                case 1:
+                    GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+                    break;
+                case 2:
+                    GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+                    break;
+                case 3:
+
+                    GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+                    break;
+                case 4:
+                    GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+                    GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+                    GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+                    break;
+            }
+            phase++;
         }
     }
 }
