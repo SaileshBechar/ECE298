@@ -21,7 +21,7 @@
 
 //Servo Ports/Pins
 #define SERVO_PORT  PWM_PORT
-#define SERVO_PIN   PWM_PIN
+#define SERVO_PIN   PWM_PI
 
 //Hall Effect Ports/Pins
 #define HALL_EFFECT_PORT  GPIO_PORT_P1
