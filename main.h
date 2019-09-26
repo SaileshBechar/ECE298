@@ -4,24 +4,28 @@
 #include "driverlib/driverlib.h"
 
 //Keypad Ports/Pins
+#define KEYPAD_COL1_PORT GPIO_PORT_P2
+#define KEYPAD_COL1_PIN GPIO_PIN7
+#define KEYPAD_ROW4_PORT GPIO_PORT_P2
+#define KEYPAD_ROW4_PIN GPIO_PIN5
 
 //Stepper Ports/Pins
 #define STEPPER_A_PORT  GPIO_PORT_P1
-#define STEPPER_A_PIN   GPIO_PIN5
-#define STEPPER_B_PORT  GPIO_PORT_P1
-#define STEPPER_B_PIN   GPIO_PIN4
+#define STEPPER_A_PIN   GPIO_PIN6
+#define STEPPER_B_PORT  GPIO_PORT_P5
+#define STEPPER_B_PIN   GPIO_PIN0
 #define STEPPER_C_PORT  GPIO_PORT_P1
 #define STEPPER_C_PIN   GPIO_PIN3
-#define STEPPER_D_PORT  GPIO_PORT_P5
-#define STEPPER_D_PIN   GPIO_PIN3
+#define STEPPER_D_PORT  GPIO_PORT_P1
+#define STEPPER_D_PIN   GPIO_PIN4
 
 //Servo Ports/Pins
 #define SERVO_PORT  PWM_PORT
 #define SERVO_PIN   PWM_PIN
 
 //Hall Effect Ports/Pins
-#define HALL_EFFECT_PORT  GPIO_PORT_P2
-#define HALL_EFFECT_PIN   GPIO_PIN7
+#define HALL_EFFECT_PORT  GPIO_PORT_P1
+#define HALL_EFFECT_PIN   GPIO_PIN5
 
 
 #define TIMER_A_PERIOD  20000 //T = 1/f = (TIMER_A_PERIOD * 1 us)
@@ -52,6 +56,7 @@ void runStepper();
 void forwardStep();
 void backwardStep();
 void runServo();
+void runHall();
 void displayText(char *);
 
 void Init_GPIO(void);
