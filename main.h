@@ -3,8 +3,29 @@
 
 #include "driverlib/driverlib.h"
 
-#define TIMER_A_PERIOD  1000 //T = 1/f = (TIMER_A_PERIOD * 1 us)
-#define HIGH_COUNT      500  //Number of cycles signal is high (Duty Cycle = HIGH_COUNT / TIMER_A_PERIOD)
+//Keypad Ports/Pins
+
+//Stepper Ports/Pins
+#define STEPPER_A_PORT  GPIO_PORT_P1
+#define STEPPER_A_PIN   GPIO_PIN5
+#define STEPPER_B_PORT  GPIO_PORT_P1
+#define STEPPER_B_PIN   GPIO_PIN4
+#define STEPPER_C_PORT  GPIO_PORT_P1
+#define STEPPER_C_PIN   GPIO_PIN3
+#define STEPPER_D_PORT  GPIO_PORT_P5
+#define STEPPER_D_PIN   GPIO_PIN3
+
+//Servo Ports/Pins
+#define SERVO_PORT  PWM_PORT
+#define SERVO_PIN   PWM_PIN
+
+//Hall Effect Ports/Pins
+#define HALL_EFFECT_PORT  GPIO_PORT_P2
+#define HALL_EFFECT_PIN   GPIO_PIN7
+
+
+#define TIMER_A_PERIOD  20000 //T = 1/f = (TIMER_A_PERIOD * 1 us)
+#define HIGH_COUNT      2000  //Number of cycles signal is high (Duty Cycle = HIGH_COUNT / TIMER_A_PERIOD)
 
 //Output pin to buzzer
 #define PWM_PORT        GPIO_PORT_P1
@@ -25,6 +46,13 @@
 #define ADC_IN_PORT     GPIO_PORT_P8
 #define ADC_IN_PIN      GPIO_PIN1
 #define ADC_IN_CHANNEL  ADC_INPUT_A9
+
+void waitForButtonRelease(uint8_t, uint16_t, int);
+void runStepper();
+void forwardStep();
+void backwardStep();
+void runServo();
+void displayText(char *);
 
 void Init_GPIO(void);
 void Init_Clock(void);
