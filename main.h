@@ -57,6 +57,7 @@ void forwardStep();
 void backwardStep();
 void runServo();
 void runHall();
+void displayUART();
 void displayText(char *);
 
 void Init_GPIO(void);
