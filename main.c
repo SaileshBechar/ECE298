@@ -15,6 +15,8 @@ char ADCState = 0; //Busy state of the ADC
 int16_t ADCResult = 0; //Storage for the ADC conversion result
 
 int8_t changeMode = 1;
+volatile char input_string[10] = {0};
+volatile int8_t input_pos = 0;
 
 void main(void)
 {
@@ -102,6 +104,11 @@ void main(void)
                     displayText("HALL");
                     runHall();
                     mode = stepper;
+                    break;        
+                case UART:
+                    clearLCD();
+                    displayUART();
+                    mode = stepper;
                     break;
                 default:
                     break;
@@ -183,16 +190,11 @@ void runStepper(){
         }
 
         // Keypad (* button only)
-        if (GPIO_getInputPinValue(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN) == 1){
+        if (changeMode == 1) {
             GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
             GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
             GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
             GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-
-            changeMode = 1;
-            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
-            waitForButtonRelease(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN, 1);
-            GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
             break;
         }
     }
@@ -300,13 +302,8 @@ void runServo(){
         i++;
 
         // Keypad (* button only)
-        if (GPIO_getInputPinValue(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN) == 1){
+        if (changeMode == 1) {
               Timer_A_stop(TIMER_A0_BASE);    //Shut off PWM signal
-
-              changeMode = 1;
-              GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
-              waitForButtonRelease(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN, 1);
-              GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
               break;
           }
     }
@@ -319,13 +316,9 @@ void runHall(){
             waitForButtonRelease(HALL_EFFECT_PORT, HALL_EFFECT_PIN, 0);
             GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
         }
-        if (GPIO_getInputPinValue(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN) == 1){
-              changeMode = 1;
-              GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
-              waitForButtonRelease(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN, 1);
-              GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
-              break;
-          }
+        if (changeMode == 1) {
+            break;
+        }
     }
 }
 
@@ -346,6 +339,12 @@ void displayText(char *msg){
     showChar(buffer[3], pos4);
     showChar(buffer[4], pos5);
     showChar(buffer[5], pos6);
+}
+
+void displayUART() {
+    while (1) {
+        displayText((char*)input_string);
+    }
 }
 
 void Init_GPIO(void)
@@ -472,6 +471,14 @@ void EUSCIA0_ISR(void)
 
     if (RxStatus)
     {
+        input_string[input_pos] = EUSCI_A_UART_receiveData(EUSCI_A0_BASE);
+        input_pos++;
+        if (input_pos > 5) {
+            input_pos = 0;
+        }
+        if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == '1') {
+           changeMode = 1;
+        }
         EUSCI_A_UART_transmitData(EUSCI_A0_BASE, EUSCI_A_UART_receiveData(EUSCI_A0_BASE));
     }
 }
