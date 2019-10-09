@@ -280,10 +280,10 @@ void runServo(){
 
 void runHall(){
     while(1) {
-        if (GPIO_getInputPinValue(HALL_EFFECT_PORT, HALL_EFFECT_PIN)==0){
-            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
-            waitForButtonRelease(HALL_EFFECT_PORT, HALL_EFFECT_PIN, 0);
-            GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
+         if (ADCState == 0) {
+            showHex((int)ADCResult);
+            ADCState = 1;
+            ADC_startConversion(ADC_BASE, ADC_SINGLECHANNEL);
         }
         if (changeMode == 1) {
             break;
