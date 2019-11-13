@@ -3,21 +3,37 @@
 #include "driverlib/driverlib.h"
 #include "hal_LCD.h"
 #include "Board.h"
-
+#include <stdlib.h>
 /*
  * Matyszczuk, Michael
  * Bechar, Sailesh
  * Code for XY-Plotter for ECE 298: Instrumentation and Prototyping Labratory
  */
 
+#define MAX_INPUT_SIZE 10
 
 char ADCState = 0; //Busy state of the ADC
 int16_t ADCResult = 0; //Storage for the ADC conversion result
 
-int8_t changeMode = 1;
-volatile char input_string[10] = {0};
-volatile int8_t input_pos = 0;
-int8_t Stepper_EnA_ENB = 0;
+volatile int8_t changeMode = 1;
+volatile char coor_recieved;
+char temp_buf[6] = {0};
+volatile unsigned char curr_buf_pos = 0;
+volatile int8_t Stepper_EnA_ENB = 0;
+
+typedef struct buffer {
+    int x;
+    int y;
+} COORDINATE;
+
+volatile COORDINATE input_coordinates[MAX_INPUT_SIZE];
+volatile unsigned char curr_input_pos = 0;
+volatile unsigned char final_input_pos = 0; /*may not need */
+
+void handleUART();
+int inputToCoor(char* input);
+void insertCoordinate(int num, char pos);
+void removeCoordinate(COORDINATE* coordinate);
 
 void main(void)
 {
@@ -73,7 +89,7 @@ void main(void)
     GPIO_setAsOutputPin(STEPPER_D_PORT, STEPPER_D_PIN);
 
     //HallEffect
-    GPIO_setAsInputPinWithPullUpResistor(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
+GPIO_setAsInputPinWithPullUpResistor(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
 
     // Keypad
     GPIO_setAsInputPinWithPullDownResistor(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN);
@@ -171,11 +187,11 @@ void forwardStep(){
     int phase = 1;
     int i;
 
-    if(Stepper_EnA_ENB == 1){
-        GPIO_setOutputLowOnPin(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
-    }else if(Stepper_EnA_ENB == 0){
-        GPIO_setOutputHighOnPin(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
-    }
+//    if(Stepper_EnA_ENB == 1){
+//        GPIO_setOutputLowOnPin(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
+//    }else if(Stepper_EnA_ENB == 0){
+//        GPIO_setOutputHighOnPin(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
+//    }
 
     while(phase <= 4){
         i = 500;
@@ -312,11 +328,72 @@ void displayText(char *msg){
 
 void displayUART() {
     while (1) {
-        displayText((char*)input_string);
+        coor_recieved = 0;
+        displayText(temp_buf);
+        handleUART();
         if(changeMode == 1){
             break;
         }
     }
+}
+
+void handleUART() {
+    if (coor_recieved != 0) {
+
+        temp_buf[curr_buf_pos] = coor_recieved;
+
+        if (curr_buf_pos == 5) {
+            //insert y to queue
+            int num = inputToCoor(&temp_buf[3]);
+            insertCoordinate(num, 'Y');
+            curr_buf_pos = 0;
+            memset(temp_buf, 0, 6);
+        }
+        else if(curr_buf_pos == 2) {
+            //insert x to queue with decimal
+            int num = inputToCoor(temp_buf);
+            insertCoordinate(num, 'X');
+            curr_buf_pos++;
+        }
+        else {
+            curr_buf_pos++;
+        }
+    }
+}
+
+int inputToCoor(char* input) {
+    char three_digit_char[3];
+    memcpy(three_digit_char, input, 3);
+    return atoi(three_digit_char);
+}
+
+/*removes top element and writes it to coordinate
+ * return value is false if unsuccessful
+ */
+void removeCoordinate(COORDINATE* coordinate) {
+    if (curr_input_pos == 0){
+        curr_input_pos = MAX_INPUT_SIZE;
+    } else {
+        curr_input_pos--;
+    }
+    *coordinate = input_coordinates[curr_input_pos];
+}
+/* inserts element to last position in queue
+ * returns false if full
+ */
+void insertCoordinate(int num, char pos) {
+    if (pos == 'X') {
+        input_coordinates[curr_input_pos].x = num;
+    }
+    else if (pos == 'Y'){
+    input_coordinates[curr_input_pos].y = num;
+        if (curr_input_pos == MAX_INPUT_SIZE) {
+           curr_input_pos = 0;
+        } else {
+           curr_input_pos++;
+        }
+    }
+
 }
 
 void Init_GPIO(void)
@@ -443,13 +520,11 @@ void EUSCIA0_ISR(void)
 
     if (RxStatus)
     {
-        input_string[input_pos] = EUSCI_A_UART_receiveData(EUSCI_A0_BASE);
-        input_pos++;
-        if (input_pos > 5) {
-            input_pos = 0;
-        }
-        if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == '1') {
+
+        if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == 13) {
            changeMode = 1;
+        } else {
+            coor_recieved = EUSCI_A_UART_receiveData(EUSCI_A0_BASE);
         }
         EUSCI_A_UART_transmitData(EUSCI_A0_BASE, EUSCI_A_UART_receiveData(EUSCI_A0_BASE));
     }
