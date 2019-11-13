@@ -4,6 +4,7 @@
 #include "hal_LCD.h"
 #include "Board.h"
 #include <stdlib.h>
+#include <stdbool.h>
 /*
  * Matyszczuk, Michael
  * Bechar, Sailesh
@@ -17,23 +18,27 @@ int16_t ADCResult = 0; //Storage for the ADC conversion result
 
 volatile int8_t changeMode = 1;
 volatile char coor_recieved;
-char temp_buf[6] = {0};
+char temp_buf[6] = "000000";
 volatile unsigned char curr_buf_pos = 0;
 volatile int8_t Stepper_EnA_ENB = 0;
+
+bool print_toggle = false;
 
 typedef struct buffer {
     int x;
     int y;
 } COORDINATE;
 
-volatile COORDINATE input_coordinates[MAX_INPUT_SIZE];
-volatile unsigned char curr_input_pos = 0;
-volatile unsigned char final_input_pos = 0; /*may not need */
+COORDINATE input_coordinates[MAX_INPUT_SIZE];
+unsigned char first_element_pos = 0;
+unsigned char last_element_pos = 0;
+int coordinate_size = 0;
 
 void handleUART();
 int inputToCoor(char* input);
-void insertCoordinate(int num, char pos);
-void removeCoordinate(COORDINATE* coordinate);
+int insertCoordinate(int num, char pos);
+int removeCoordinate(COORDINATE* coordinate);
+void printCoordinates();
 
 void main(void)
 {
@@ -89,7 +94,7 @@ void main(void)
     GPIO_setAsOutputPin(STEPPER_D_PORT, STEPPER_D_PIN);
 
     //HallEffect
-GPIO_setAsInputPinWithPullUpResistor(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
+
 
     // Keypad
     GPIO_setAsInputPinWithPullDownResistor(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN);
@@ -331,6 +336,7 @@ void displayUART() {
         coor_recieved = 0;
         displayText(temp_buf);
         handleUART();
+        printCoordinates();
         if(changeMode == 1){
             break;
         }
@@ -338,8 +344,10 @@ void displayUART() {
 }
 
 void handleUART() {
-    if (coor_recieved != 0) {
-
+    if (coor_recieved != 0 && coor_recieved >= '0' && coor_recieved <= '9') {
+        if (curr_buf_pos == 0) {
+            memset(temp_buf, '0', 6);
+        }
         temp_buf[curr_buf_pos] = coor_recieved;
 
         if (curr_buf_pos == 5) {
@@ -347,7 +355,6 @@ void handleUART() {
             int num = inputToCoor(&temp_buf[3]);
             insertCoordinate(num, 'Y');
             curr_buf_pos = 0;
-            memset(temp_buf, 0, 6);
         }
         else if(curr_buf_pos == 2) {
             //insert x to queue with decimal
@@ -370,30 +377,69 @@ int inputToCoor(char* input) {
 /*removes top element and writes it to coordinate
  * return value is false if unsuccessful
  */
-void removeCoordinate(COORDINATE* coordinate) {
-    if (curr_input_pos == 0){
-        curr_input_pos = MAX_INPUT_SIZE;
-    } else {
-        curr_input_pos--;
+int removeCoordinate(COORDINATE* coordinate) {
+    if (coordinate_size < 0) {
+        return -1;
     }
-    *coordinate = input_coordinates[curr_input_pos];
+    *coordinate = input_coordinates[first_element_pos];
+
+    if (first_element_pos == MAX_INPUT_SIZE){
+        first_element_pos = 0;
+    } else {
+        first_element_pos++;
+    }
+    coordinate_size--;
+    return 0;
 }
 /* inserts element to last position in queue
  * returns false if full
  */
-void insertCoordinate(int num, char pos) {
+int insertCoordinate(int num, char pos) {
+    if (coordinate_size > MAX_INPUT_SIZE) {
+        return -1;
+    }
     if (pos == 'X') {
-        input_coordinates[curr_input_pos].x = num;
+        input_coordinates[last_element_pos].x = num;
     }
     else if (pos == 'Y'){
-    input_coordinates[curr_input_pos].y = num;
-        if (curr_input_pos == MAX_INPUT_SIZE) {
-           curr_input_pos = 0;
+    input_coordinates[last_element_pos].y = num;
+        if (last_element_pos == MAX_INPUT_SIZE) {
+            last_element_pos = 0;
         } else {
-           curr_input_pos++;
+            last_element_pos++;
         }
     }
+    coordinate_size++;
+    return 0;
+}
 
+void printCoordinates() {
+    while (coor_recieved == 'P') {
+        char temp_coord[6];
+        int temp_int;
+
+        COORDINATE curr_coordinate;
+        if (print_toggle == true) {
+            removeCoordinate(&curr_coordinate);
+            print_toggle = false;
+        }
+        temp_int = curr_coordinate.x;
+        temp_coord[2] = temp_int % 10 + '0';
+        temp_int /= 10;
+        temp_coord[1] = temp_int % 10 + '0';
+        temp_int /= 10;
+        temp_coord[0] = temp_int % 10 + '0';
+
+        temp_int = curr_coordinate.y;
+        temp_coord[5] = temp_int % 10 + '0';
+        temp_int /= 10;
+        temp_coord[4] = temp_int % 10 + '0';
+        temp_int /= 10;
+        temp_coord[3] = temp_int % 10 + '0';
+
+        displayText(temp_coord);
+
+    }
 }
 
 void Init_GPIO(void)
@@ -523,7 +569,12 @@ void EUSCIA0_ISR(void)
 
         if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == 13) {
            changeMode = 1;
-        } else {
+        }
+        else if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == 'P') {
+            coor_recieved = EUSCI_A_UART_receiveData(EUSCI_A0_BASE);
+            print_toggle = true;
+        }
+        else {
             coor_recieved = EUSCI_A_UART_receiveData(EUSCI_A0_BASE);
         }
         EUSCI_A_UART_transmitData(EUSCI_A0_BASE, EUSCI_A_UART_receiveData(EUSCI_A0_BASE));
