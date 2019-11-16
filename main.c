@@ -353,14 +353,16 @@ void handleUART() {
         if (curr_buf_pos == 5) {
             //insert y to queue
             int num = inputToCoor(&temp_buf[3]);
-            insertCoordinate(num, 'Y');
-            curr_buf_pos = 0;
+            if (insertCoordinate(num, 'Y')) {
+                curr_buf_pos = 0;
+            }
         }
         else if(curr_buf_pos == 2) {
             //insert x to queue with decimal
             int num = inputToCoor(temp_buf);
-            insertCoordinate(num, 'X');
-            curr_buf_pos++;
+            if (insertCoordinate(num, 'X')){
+                curr_buf_pos++;
+            }
         }
         else {
             curr_buf_pos++;
@@ -379,6 +381,11 @@ int inputToCoor(char* input) {
  */
 int removeCoordinate(COORDINATE* coordinate) {
     if (coordinate_size < 0) {
+        int x = 0;
+        displayText("NIGGA");
+        while (x < 30000){
+            x++;
+        }
         return -1;
     }
     *coordinate = input_coordinates[first_element_pos];
@@ -389,7 +396,7 @@ int removeCoordinate(COORDINATE* coordinate) {
         first_element_pos++;
     }
     coordinate_size--;
-    return 0;
+    return 1;
 }
 /* inserts element to last position in queue
  * returns false if full
@@ -410,34 +417,40 @@ int insertCoordinate(int num, char pos) {
         }
     }
     coordinate_size++;
-    return 0;
+    return 1;
 }
 
 void printCoordinates() {
     while (coor_recieved == 'P') {
         char temp_coord[6];
         int temp_int;
-
         COORDINATE curr_coordinate;
+        int returnval = 0;
+
         if (print_toggle == true) {
-            removeCoordinate(&curr_coordinate);
+            returnval = removeCoordinate(&curr_coordinate);
             print_toggle = false;
         }
-        temp_int = curr_coordinate.x;
-        temp_coord[2] = temp_int % 10 + '0';
-        temp_int /= 10;
-        temp_coord[1] = temp_int % 10 + '0';
-        temp_int /= 10;
-        temp_coord[0] = temp_int % 10 + '0';
 
-        temp_int = curr_coordinate.y;
-        temp_coord[5] = temp_int % 10 + '0';
-        temp_int /= 10;
-        temp_coord[4] = temp_int % 10 + '0';
-        temp_int /= 10;
-        temp_coord[3] = temp_int % 10 + '0';
+        if (returnval) {
+            temp_int = curr_coordinate.x;
+            temp_coord[2] = temp_int % 10 + '0';
+            temp_int /= 10;
+            temp_coord[1] = temp_int % 10 + '0';
+            temp_int /= 10;
+            temp_coord[0] = temp_int % 10 + '0';
 
-        displayText(temp_coord);
+            temp_int = curr_coordinate.y;
+            temp_coord[5] = temp_int % 10 + '0';
+            temp_int /= 10;
+            temp_coord[4] = temp_int % 10 + '0';
+            temp_int /= 10;
+            temp_coord[3] = temp_int % 10 + '0';
+
+            displayText(temp_coord);
+        }
+
+
 
     }
 }
