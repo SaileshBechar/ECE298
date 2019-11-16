@@ -35,7 +35,7 @@ unsigned char last_element_pos = 0;
 int coordinate_size = 0;
 
 void handleUART();
-int inputToCoor(char* input);
+int inputToCoor(char* input, int num_bytes_to_copy);
 int insertCoordinate(int num, char pos);
 int removeCoordinate(COORDINATE* coordinate);
 void printCoordinates();
@@ -344,35 +344,40 @@ void displayUART() {
 }
 
 void handleUART() {
-    if (coor_recieved != 0 && coor_recieved >= '0' && coor_recieved <= '9') {
-        if (curr_buf_pos == 0) {
-            memset(temp_buf, '0', 6);
-        }
-        temp_buf[curr_buf_pos] = coor_recieved;
+    if ((coor_recieved != 0 && coor_recieved >= '0' && coor_recieved <= '9') || coor_recieved == 13 || coor_recieved == 8) {
 
-        if (curr_buf_pos == 5) {
-            //insert y to queue
-            int num = inputToCoor(&temp_buf[3]);
-            if (insertCoordinate(num, 'Y')) {
+        if (coor_recieved == 13) {
+            int x = inputToCoor(temp_buf, curr_buf_pos);
+            int y = inputToCoor(&temp_buf[3], curr_buf_pos-3);
+            if (insertCoordinate(x, 'X') && insertCoordinate(y, 'Y')) {
                 curr_buf_pos = 0;
+                memset(temp_buf, '0', 6);
             }
         }
-        else if(curr_buf_pos == 2) {
-            //insert x to queue with decimal
-            int num = inputToCoor(temp_buf);
-            if (insertCoordinate(num, 'X')){
-                curr_buf_pos++;
-            }
-        }
-        else {
+
+        if (curr_buf_pos <= 5 && coor_recieved >= '0' && coor_recieved <= '9') {
+            temp_buf[curr_buf_pos] = coor_recieved;
             curr_buf_pos++;
         }
+
+        if (coor_recieved == 8) {
+            curr_buf_pos--;
+            temp_buf[curr_buf_pos] = '0';
+        }
+
     }
 }
 
-int inputToCoor(char* input) {
-    char three_digit_char[3];
-    memcpy(three_digit_char, input, 3);
+int inputToCoor(char* input, int num_bytes_to_copy) {
+    char three_digit_char[4];
+    memset(three_digit_char, 0, 4);
+    if (num_bytes_to_copy <= 0) {
+        return 0;
+    }
+    if (num_bytes_to_copy > 3) {
+        num_bytes_to_copy = 3;
+    }
+    memcpy(three_digit_char, input, num_bytes_to_copy);
     return atoi(three_digit_char);
 }
 
@@ -380,12 +385,7 @@ int inputToCoor(char* input) {
  * return value is false if unsuccessful
  */
 int removeCoordinate(COORDINATE* coordinate) {
-    if (coordinate_size < 0) {
-        int x = 0;
-        displayText("NIGGA");
-        while (x < 30000){
-            x++;
-        }
+    if (coordinate_size <= 0) {
         return -1;
     }
     *coordinate = input_coordinates[first_element_pos];
@@ -415,8 +415,9 @@ int insertCoordinate(int num, char pos) {
         } else {
             last_element_pos++;
         }
+        coordinate_size++;
     }
-    coordinate_size++;
+
     return 1;
 }
 
@@ -580,7 +581,7 @@ void EUSCIA0_ISR(void)
     if (RxStatus)
     {
 
-        if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == 13) {
+        if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == 'N') {
            changeMode = 1;
         }
         else if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == 'P') {
