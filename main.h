@@ -2,32 +2,31 @@
 #define MAIN_H_
 
 #include "driverlib/driverlib.h"
-
-//Keypad Ports/Pins
-#define KEYPAD_COL1_PORT GPIO_PORT_P2
-#define KEYPAD_COL1_PIN GPIO_PIN7
-#define KEYPAD_ROW4_PORT GPIO_PORT_P2
-#define KEYPAD_ROW4_PIN GPIO_PIN5
+#include "StepperMotor.h"
 
 //Stepper Ports/Pins
-#define STEPPER_A_PORT  GPIO_PORT_P1
-#define STEPPER_A_PIN   GPIO_PIN6
+#define STEPPER_A_PORT  GPIO_PORT_P5
+#define STEPPER_A_PIN   GPIO_PIN2
 #define STEPPER_B_PORT  GPIO_PORT_P5
-#define STEPPER_B_PIN   GPIO_PIN0
+#define STEPPER_B_PIN   GPIO_PIN3
 #define STEPPER_C_PORT  GPIO_PORT_P1
 #define STEPPER_C_PIN   GPIO_PIN3
 #define STEPPER_D_PORT  GPIO_PORT_P1
 #define STEPPER_D_PIN   GPIO_PIN4
-
-//Servo Ports/Pins
-#define SERVO_PORT  PWM_PORT
-#define SERVO_PIN   PWM_PIN
+#define STEPPER_EnX_ENY_PORT  GPIO_PORT_P1
+#define STEPPER_EnX_ENY_PIN   GPIO_PIN5
 
 //Hall Effect Ports/Pins
-#define HALL_EFFECT_PORT  GPIO_PORT_P1
-#define HALL_EFFECT_PIN   GPIO_PIN5
+#define HE_X1_PORT  GPIO_PORT_P8    //Left
+#define HE_X1_PIN   GPIO_PIN1
+#define HE_X2_PORT  GPIO_PORT_P2    //Right
+#define HE_X2_PIN   GPIO_PIN7
+#define HE_Y1_PORT  GPIO_PORT_P8    //Up
+#define HE_Y1_PIN   GPIO_PIN0
+#define HE_Y2_PORT  GPIO_PORT_P2    //Down
+#define HE_Y2_PIN   GPIO_PIN5
 
-
+//PWM
 #define TIMER_A_PERIOD  20000 //T = 1/f = (TIMER_A_PERIOD * 1 us)
 #define HIGH_COUNT      2000  //Number of cycles signal is high (Duty Cycle = HIGH_COUNT / TIMER_A_PERIOD)
 
@@ -53,10 +52,6 @@
 
 void waitForButtonRelease(uint8_t, uint16_t, int);
 void runStepper();
-void forwardStep();
-void backwardStep();
-void runServo();
-void runHall();
 void displayUART();
 void displayText(char *);
 
