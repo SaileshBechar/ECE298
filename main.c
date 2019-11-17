@@ -3,8 +3,10 @@
 #include "driverlib/driverlib.h"
 #include "hal_LCD.h"
 #include "Board.h"
+#include "StepperMotor.h"
 #include <stdlib.h>
 #include <stdbool.h>
+
 /*
  * Matyszczuk, Michael
  * Bechar, Sailesh
@@ -42,16 +44,6 @@ void printCoordinates();
 
 void main(void)
 {
-    /*
-     * Functions with two underscores in front are called compiler intrinsics.
-     * They are documented in the compiler user guide, not the IDE or MCU guides.
-     * They are a shortcut to insert some assembly code that is not really
-     * expressible in plain C/C++. Google "MSP430 Optimizing C/C++ Compiler
-     * v18.12.0.LTS" and search for the word "intrinsic" if you want to know
-     * more.
-     * */
-
-
     //Turn off interrupts during initialization
     __disable_interrupt();
 
@@ -61,19 +53,11 @@ void main(void)
     // Initializations - see functions for more detail
     Init_GPIO();    //Sets all pins to output low as a default
     Init_PWM();     //Sets up a PWM output
-    Init_ADC();     //Sets up the ADC to sample
+    //Init_ADC();     //Sets up the ADC to sample
     Init_Clock();   //Sets up the necessary system clocks
     Init_UART();    //Sets up an echo over a COM port
     Init_LCD();     //Sets up the LaunchPad LCD display
 
-     /*
-     * The MSP430 MCUs have a variety of low power modes. They can be almost
-     * completely off and turn back on only when an interrupt occurs. You can
-     * look up the power modes in the Family User Guide under the Power Management
-     * Module (PMM) section. You can see the available API calls in the DriverLib
-     * user guide, or see "pmm.h" in the driverlib directory. Unless you
-     * purposefully want to play with the power modes, just leave this command in.
-     */
     PMM_unlockLPM5(); //Disable the GPIO power-on default high-impedance mode to activate previously configured port settings
 
     //All done initializations - turn interrupts back on.
@@ -81,237 +65,111 @@ void main(void)
 
     displayScrollText("ECE 298");
 
-
     //Initialize Variables
     volatile unsigned int i;
-    enum Mode {stepper, servo, hallEffect, UART, none};
-    enum Mode mode = stepper;
+    enum Mode {STEPPER, UART, NONE};
+    enum Mode mode = STEPPER;
 
     //Stepper Motor
     GPIO_setAsOutputPin(STEPPER_A_PORT, STEPPER_A_PIN);
     GPIO_setAsOutputPin(STEPPER_B_PORT, STEPPER_B_PIN);
     GPIO_setAsOutputPin(STEPPER_C_PORT, STEPPER_C_PIN);
     GPIO_setAsOutputPin(STEPPER_D_PORT, STEPPER_D_PIN);
+    GPIO_setAsOutputPin(STEPPER_EnX_ENY_PORT, STEPPER_EnX_ENY_PIN);
 
     //HallEffect
-
-
-    // Keypad
-    GPIO_setAsInputPinWithPullDownResistor(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN);
-    GPIO_setAsOutputPin(KEYPAD_ROW4_PORT, KEYPAD_ROW4_PIN);
-    GPIO_setOutputHighOnPin(KEYPAD_ROW4_PORT, KEYPAD_ROW4_PIN);
+    GPIO_setAsInputPinWithPullUpResistor(HE_X1_PORT, HE_X1_PIN);
+    GPIO_setAsInputPinWithPullUpResistor(HE_X2_PORT, HE_X2_PIN);
+    GPIO_setAsInputPinWithPullUpResistor(HE_Y1_PORT, HE_Y1_PIN);
+    GPIO_setAsInputPinWithPullUpResistor(HE_Y2_PORT, HE_Y2_PIN);
 
     clearLCD();
 
     while(1){
+
+        /*while(1){
+            move(X, RIGHT, 500);
+            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
+            move(Y, UP, 500);
+            GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
+            move(X, LEFT, 500);
+            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
+            move(Y, DOWN, 500);
+            GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
+            pointToPoint(0, 20);
+            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
+            pointToPoint(0, -20);
+            GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
+            int i;
+            for(i = 100; i > 0; i--){
+                move(X, RIGHT, 1);
+                GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
+                move(Y, UP, 4);
+                GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
+            }
+            for(i = 100; i > 0; i--){
+                move(X, LEFT, 1);
+                GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
+                move(Y, DOWN, 4);
+                GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
+            }
+        }*/
         // Changes the mode and displays on LCD
         if(changeMode){
             changeMode = 0;
 
             switch(mode){
-                case stepper:
+                case STEPPER:
                     clearLCD();
                     displayText("STEP");
                     runStepper();
-                    mode = servo;
-                    break;
-                case servo:
-                    clearLCD();
-                    displayText("SERVO");
-                    runServo();
-                    mode = hallEffect;
-                    break;
-                case hallEffect:
-                    clearLCD();
-                    displayText("HALL");
-                    runHall();
                     mode = UART;
                     break;
                 case UART:
                     clearLCD();
                     displayUART();
-                    mode = stepper;
+                    mode = STEPPER;
                     break;
                 default:
                     break;
 
             }
         }
-
-        // Keypad (* button only)
-        if (GPIO_getInputPinValue(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN) == 1){
-            changeMode = 1;
-            GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
-            waitForButtonRelease(KEYPAD_COL1_PORT, KEYPAD_COL1_PIN, 1);
-            GPIO_setOutputLowOnPin(LED2_PORT, LED2_PIN);
-        }
     }
-
-    /*
-     * You can use the following code if you plan on only using interrupts
-     * to handle all your system events since you don't need any infinite loop of code.
-     *
-     * //Enter LPM0 - interrupts only
-     * __bis_SR_register(LPM0_bits);
-     * //For debugger to let it know that you meant for there to be no more code
-     * __no_operation();
-    */
 }
 
+/*
+ * Polls an input pin, returns when the value changes.
+ * uint8_t port: port
+ * uint16_t pin: pin
+ * int currentState: the state of the pin when the function was entered
+ * return: void when the pin state != currentState
+ */
 void waitForButtonRelease(uint8_t port, uint16_t pin, int currentState){
     while(GPIO_getInputPinValue(port, pin) == currentState){
     }
 }
 
+/*
+ * Run through all of the coordinates that have been entered and move to them one by one.
+ * return: void when all coordinates have been moved to
+ */
 void runStepper(){
-    while(1){
-        if ((GPIO_getInputPinValue(SW2_PORT, SW2_PIN) == 0)){
-            Stepper_EnA_ENB = !Stepper_EnA_ENB;
-            waitForButtonRelease(SW2_PORT, SW2_PIN, 0);
-        }
-        if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 0)){
-            forwardStep();
-        }
+    COORDINATE destination;
 
-        if ((GPIO_getInputPinValue(SW2_PORT, SW2_PIN) == 0)){
-            backwardStep();
-        }
-
-        // Keypad (* button only)
-        if (changeMode == 1) {
-            GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-            GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-            GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-            GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-            break;
-        }
-    }
-}
-
-void forwardStep(){
-    int phase = 1;
     int i;
-
-//    if(Stepper_EnA_ENB == 1){
-//        GPIO_setOutputLowOnPin(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
-//    }else if(Stepper_EnA_ENB == 0){
-//        GPIO_setOutputHighOnPin(HALL_EFFECT_PORT, HALL_EFFECT_PIN);
-//    }
-
-    while(phase <= 4){
-        i = 500;
-        while(i > 0){
-            i--;
-        }
-
-        switch(phase){
-            case 1:
-                GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-                break;
-            case 2:
-                GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-                break;
-            case 3:
-                GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-                break;
-            case 4:
-                GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-                break;
-        }
-        phase++;
+    for(i = coordinate_size; i>0; i--){
+        removeCoordinate(&destination);
+        pointToPoint(destination.x, destination.y);
     }
+    return;
 }
 
-void backwardStep(){
-    int phase = 1;
-    int i;
-
-    while(phase <= 4){
-        i = 500;
-        while(i > 0){
-            i--;
-        }
-
-        switch(phase){
-            case 1:
-                GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-                break;
-            case 2:
-                GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-                break;
-            case 3:
-
-                GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-                break;
-            case 4:
-                GPIO_setOutputHighOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-                GPIO_setOutputHighOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-                GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
-                break;
-        }
-        phase++;
-    }
-}
-
-void runServo(){
-    int i = 0;
-
-    while(1){
-        if(i >= 20000){
-            i = 0;
-            if(param.dutyCycle >= 2400) {
-                param.dutyCycle = 500;
-                Timer_A_outputPWM(TIMER_A0_BASE, &param);
-            } else {
-                param.dutyCycle += 950;
-                Timer_A_outputPWM(TIMER_A0_BASE, &param);
-            }
-        }
-        i++;
-
-        // Keypad (* button only)
-        if (changeMode == 1) {
-              Timer_A_stop(TIMER_A0_BASE);    //Shut off PWM signal
-              break;
-          }
-    }
-}
-
-void runHall(){
-    while(1) {
-         if (ADCState == 0) {
-            showHex((int)ADCResult);
-            ADCState = 1;
-            ADC_startConversion(ADC_BASE, ADC_SINGLECHANNEL);
-        }
-        if (changeMode == 1) {
-            break;
-        }
-    }
-}
-
+/*
+ * Displays text on the LCD
+ * char *msg: the text that you want to display
+ * return: void after displaying the text
+ */
 void displayText(char *msg){
     int length = strlen(msg);
     int i;
@@ -331,6 +189,10 @@ void displayText(char *msg){
     showChar(buffer[5], pos6);
 }
 
+/*
+ * Displays the last 6 digits entered into the UART on the LCD
+ * return: void after displaying the text
+ */
 void displayUART() {
     while (1) {
         coor_recieved = 0;
@@ -398,6 +260,7 @@ int removeCoordinate(COORDINATE* coordinate) {
     coordinate_size--;
     return 1;
 }
+
 /* inserts element to last position in queue
  * returns false if full
  */
@@ -450,12 +313,13 @@ void printCoordinates() {
 
             displayText(temp_coord);
         }
-
-
-
     }
 }
 
+
+
+/*************************************/
+//Initialization
 void Init_GPIO(void)
 {
     // Set all GPIO pins to output low to prevent floating input and reduce power consumption
@@ -580,7 +444,6 @@ void EUSCIA0_ISR(void)
 
     if (RxStatus)
     {
-
         if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == 'N') {
            changeMode = 1;
         }
@@ -680,6 +543,8 @@ void ADC_ISR(void)
     uint8_t ADCStatus = ADC_getInterruptStatus(ADC_BASE, ADC_COMPLETED_INTERRUPT_FLAG);
 
     ADC_clearInterrupt(ADC_BASE, ADCStatus);
+
+    GPIO_setOutputHighOnPin(LED2_PORT, LED2_PIN);
 
     if (ADCStatus)
     {
