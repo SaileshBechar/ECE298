@@ -6,6 +6,7 @@
 #include "StepperMotor.h"
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 /*
  * Matyszczuk, Michael
@@ -20,7 +21,7 @@ int16_t ADCResult = 0; //Storage for the ADC conversion result
 
 volatile int8_t changeMode = 1;
 volatile char coor_recieved;
-char temp_buf[6] = "000000";
+char temp_buf[6] = {0};
 volatile unsigned char curr_buf_pos = 0;
 volatile int8_t Stepper_EnA_ENB = 0;
 
@@ -36,11 +37,15 @@ unsigned char first_element_pos = 0;
 unsigned char last_element_pos = 0;
 int coordinate_size = 0;
 
+COORDINATE current_coordinate;
+
 void handleUART();
 int inputToCoor(char* input, int num_bytes_to_copy);
 int insertCoordinate(int num, char pos);
 int removeCoordinate(COORDINATE* coordinate);
-void printCoordinates();
+void displayCoordinates(COORDINATE curr_coordinate);
+void jog();
+int fetch_coordinate(COORDINATE* curr_pos);
 
 void main(void)
 {
@@ -67,8 +72,8 @@ void main(void)
 
     //Initialize Variables
     volatile unsigned int i;
-    enum Mode {STEPPER, UART, NONE};
-    enum Mode mode = STEPPER;
+    enum Mode {UART, JOG, NONE};
+    enum Mode mode = UART;
 
     //Stepper Motor
     GPIO_setAsOutputPin(STEPPER_A_PORT, STEPPER_A_PIN);
@@ -84,6 +89,9 @@ void main(void)
     GPIO_setAsInputPinWithPullUpResistor(HE_Y2_PORT, HE_Y2_PIN);
 
     clearLCD();
+
+    current_coordinate.x = 0;
+    current_coordinate.y = 0;
 
     while(1){
 
@@ -119,17 +127,23 @@ void main(void)
             changeMode = 0;
 
             switch(mode){
-                case STEPPER:
-                    clearLCD();
-                    displayText("STEP");
-                    runStepper();
-                    mode = UART;
-                    break;
+//                case STEPPER:
+//                    clearLCD();
+//                    displayText("STEP");
+//                    runStepper();
+//                    mode = UART;
+//                    break;
                 case UART:
                     clearLCD();
+//                    displayScrollText("ENTER COORS");
                     displayUART();
-                    mode = STEPPER;
+                    mode = JOG;
                     break;
+                case JOG:
+                    clearLCD();
+                    displayScrollText("JOG");
+                    jog();
+                    mode = UART;
                 default:
                     break;
 
@@ -156,11 +170,44 @@ void waitForButtonRelease(uint8_t port, uint16_t pin, int currentState){
  */
 void runStepper(){
     COORDINATE destination;
-
+    destination.x = 0;
+    destination.y = 0;
+    if (coor_recieved != 'E') {
+        return;
+    }
+    int z = 0;
+    while (z < 1500) {
+        displayText("START");
+        z++;
+    }
     int i;
-    for(i = coordinate_size; i>0; i--){
+    while (coordinate_size > 0){
         removeCoordinate(&destination);
-        pointToPoint(destination.x, destination.y);
+
+//        pointToPoint(destination.x, destination.y);
+        while (current_coordinate.x != destination.x || current_coordinate.y != destination.y) {
+           if (current_coordinate.x < destination.x) {
+               current_coordinate.x++;
+           } else if (current_coordinate.x > destination.x) {
+               current_coordinate.x--;
+           }
+           if (current_coordinate.y < destination.y) {
+              current_coordinate.y++;
+          } else if (current_coordinate.y > destination.y) {
+              current_coordinate.y--;
+          }
+
+           int x = 0;
+           while (x < 10) {
+               displayCoordinates(current_coordinate);
+               x++;
+           }
+
+        }
+        char msg[20];
+       sprintf(msg, "X %d Y %d", current_coordinate.x, current_coordinate.y);
+       displayScrollText(msg);
+
     }
     return;
 }
@@ -190,15 +237,83 @@ void displayText(char *msg){
 }
 
 /*
+ * Uses arrow keys to move stepper motors
+ */
+void jog() {
+    COORDINATE curr_pos;
+    curr_pos.x = 0;
+    curr_pos.y = 0;
+    char temp_coord[6] = {0};
+    int temp_int = 0;
+    int update_text = 0;
+    while (1) {
+        coor_recieved = 0;
+
+        update_text = fetch_coordinate(&curr_pos);
+
+
+        if (update_text) {
+            temp_int = curr_pos.x;
+            temp_coord[2] = temp_int % 10 + '0';
+            temp_int /= 10;
+            temp_coord[1] = temp_int % 10 + '0';
+            temp_int /= 10;
+            temp_coord[0] = temp_int % 10 + '0';
+
+            temp_int = curr_pos.y;
+            temp_coord[5] = temp_int % 10 + '0';
+            temp_int /= 10;
+            temp_coord[4] = temp_int % 10 + '0';
+            temp_int /= 10;
+            temp_coord[3] = temp_int % 10 + '0';
+        }
+
+
+        displayText(temp_coord);
+        if(changeMode == 1){
+            break;
+        }
+    }
+}
+
+/*
+ * Reflects the current position of the stepper motors to the current position coordinate
+ *
+ */
+int fetch_coordinate(COORDINATE* curr_pos) {
+
+    if (coor_recieved == 'A') {
+        curr_pos->y++;
+    }
+    else if (coor_recieved == 'B') {
+        curr_pos->y--;
+    }
+    else if (coor_recieved == 'C') {
+        curr_pos->x++;
+    }
+    else if (coor_recieved == 'D') {
+        curr_pos->x--;
+    }
+    else {
+        return 0;
+    }
+    return 1;
+}
+
+
+/*
  * Displays the last 6 digits entered into the UART on the LCD
  * return: void after displaying the text
  */
 void displayUART() {
+    while (coor_recieved == 0) {
+        displayText("COORS");
+    }
     while (1) {
-        coor_recieved = 0;
         displayText(temp_buf);
         handleUART();
-        printCoordinates();
+        runStepper();
+        coor_recieved = 0;
         if(changeMode == 1){
             break;
         }
@@ -213,7 +328,7 @@ void handleUART() {
             int y = inputToCoor(&temp_buf[3], curr_buf_pos-3);
             if (insertCoordinate(x, 'X') && insertCoordinate(y, 'Y')) {
                 curr_buf_pos = 0;
-                memset(temp_buf, '0', 6);
+                memset(temp_buf, 0, 6);
             }
         }
 
@@ -224,7 +339,7 @@ void handleUART() {
 
         if (coor_recieved == 8) {
             curr_buf_pos--;
-            temp_buf[curr_buf_pos] = '0';
+            temp_buf[curr_buf_pos] = 0;
         }
 
     }
@@ -284,36 +399,26 @@ int insertCoordinate(int num, char pos) {
     return 1;
 }
 
-void printCoordinates() {
-    while (coor_recieved == 'P') {
-        char temp_coord[6];
-        int temp_int;
-        COORDINATE curr_coordinate;
-        int returnval = 0;
+void displayCoordinates(COORDINATE curr_coordinate) {
+    char temp_coord[6];
+    int temp_int;
 
-        if (print_toggle == true) {
-            returnval = removeCoordinate(&curr_coordinate);
-            print_toggle = false;
-        }
+    temp_int = curr_coordinate.x;
+    temp_coord[2] = temp_int % 10 + '0';
+    temp_int /= 10;
+    temp_coord[1] = temp_int % 10 + '0';
+    temp_int /= 10;
+    temp_coord[0] = temp_int % 10 + '0';
 
-        if (returnval) {
-            temp_int = curr_coordinate.x;
-            temp_coord[2] = temp_int % 10 + '0';
-            temp_int /= 10;
-            temp_coord[1] = temp_int % 10 + '0';
-            temp_int /= 10;
-            temp_coord[0] = temp_int % 10 + '0';
+    temp_int = curr_coordinate.y;
+    temp_coord[5] = temp_int % 10 + '0';
+    temp_int /= 10;
+    temp_coord[4] = temp_int % 10 + '0';
+    temp_int /= 10;
+    temp_coord[3] = temp_int % 10 + '0';
 
-            temp_int = curr_coordinate.y;
-            temp_coord[5] = temp_int % 10 + '0';
-            temp_int /= 10;
-            temp_coord[4] = temp_int % 10 + '0';
-            temp_int /= 10;
-            temp_coord[3] = temp_int % 10 + '0';
+    displayText(temp_coord);
 
-            displayText(temp_coord);
-        }
-    }
 }
 
 
