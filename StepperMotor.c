@@ -70,21 +70,17 @@ void forwardStep(Axis axis){
     if(axis == X){
         GPIO_setOutputHighOnPin(STEPPER_EnX_ENY_PORT, STEPPER_EnX_ENY_PIN);
         xMotor.curPos++;
-        xMotorCounter++;
+        if (xMotor.curPos % stepsPerMM == 0 ) {
+            current_coordinate.x++;
+        }
     }else if(axis == Y){
         GPIO_setOutputLowOnPin(STEPPER_EnX_ENY_PORT, STEPPER_EnX_ENY_PIN);
         yMotor.curPos++;
-        yMotorCounter++;
+        if (yMotor.curPos % stepsPerMM == 0 ) {
+               current_coordinate.y++;
+       }
     }
 
-    if (xMotorCounter == stepsPerMM ) {
-        current_coordinate.x++;
-        xMotorCounter = 0;
-    }
-    if (yMotorCounter == stepsPerMM ) {
-       current_coordinate.y++;
-       yMotorCounter = 0;
-   }
 
     displayCoordinates(current_coordinate);
 
@@ -148,21 +144,17 @@ void backwardStep(Axis axis){
     if(axis == X){
         GPIO_setOutputHighOnPin(STEPPER_EnX_ENY_PORT, STEPPER_EnX_ENY_PIN);
         xMotor.curPos--;
-        xMotorCounter++;
+        if (xMotor.curPos % stepsPerMM == 0 ) {
+            current_coordinate.x--;
+        }
     }else if(axis == Y){
         GPIO_setOutputLowOnPin(STEPPER_EnX_ENY_PORT, STEPPER_EnX_ENY_PIN);
         yMotor.curPos--;
-        yMotorCounter++;
+        if (yMotor.curPos % stepsPerMM == 0 ) {
+               current_coordinate.y--;
+       }
     }
 
-    if (xMotorCounter == stepsPerMM ) {
-        current_coordinate.x--;
-        xMotorCounter = 0;
-    }
-    if (yMotorCounter == stepsPerMM ) {
-       current_coordinate.y--;
-       yMotorCounter = 0;
-   }
     displayCoordinates(current_coordinate);
 
     while(phase <= 4){
