@@ -86,8 +86,6 @@ void main(void)
     yMotor.stepRatio = 1;
 
     stepsPerMM = 16;
-    xMotorCounter = 0;
-    yMotorCounter = 0;
 
     while(1){
 
@@ -166,8 +164,8 @@ void waitForButtonRelease(uint8_t port, uint16_t pin, int currentState){
  */
 void runStepper(){
     COORDINATE destination;
-    xMotor.curPos = current_coordinate.x;
-    yMotor.curPos = current_coordinate.y;
+    xMotor.curPos = current_coordinate.x * stepsPerMM;
+    yMotor.curPos = current_coordinate.y * stepsPerMM;
     if (coor_recieved != 'E') {
         return;
     }
@@ -179,8 +177,6 @@ void runStepper(){
     while (coordinate_size > 0){
         removeCoordinate(&destination);
 
-        xMotorCounter = 0;
-        yMotorCounter = 0;
         pointToPoint(destination.x, destination.y);
 //        while (current_coordinate.x != destination.x || current_coordinate.y != destination.y) {
 //           if (current_coordinate.x < destination.x) {
@@ -239,8 +235,8 @@ void displayText(char *msg){
  */
 void jog() {
     displayCoordinates(current_coordinate);
-    xMotor.curPos = current_coordinate.x;
-    yMotor.curPos = current_coordinate.y;
+    xMotor.curPos = current_coordinate.x * stepsPerMM;
+    yMotor.curPos = current_coordinate.y * stepsPerMM;
     while (1) {
 
         if (coor_recieved == 'Z') {
@@ -269,33 +265,25 @@ int fetch_coordinate(COORDINATE* curr_pos) {
     int i = 0;
     if (coor_recieved == 'W') {
         tempaxis = Y;
-        xMotorCounter = 0;
-        yMotorCounter = 0;
-        for (i = 0; i < 16; i++) {
+        for (i = 0; i < stepsPerMM; i++) {
             forwardStep(tempaxis);
         }
     }
     else if (coor_recieved == 'S') {
         tempaxis = Y;
-        xMotorCounter = 0;
-        yMotorCounter = 0;
-        for (i = 0; i < 16; i++) {
+        for (i = 0; i < stepsPerMM; i++) {
             backwardStep(tempaxis);
         }
     }
     else if (coor_recieved == 'D') {
         tempaxis = X;
-        xMotorCounter = 0;
-        yMotorCounter = 0;
-        for (i = 0; i < 16; i++) {
+        for (i = 0; i < stepsPerMM; i++) {
             forwardStep(tempaxis);
         }
     }
     else if (coor_recieved == 'A') {
         tempaxis = X;
-        xMotorCounter = 0;
-        yMotorCounter = 0;
-        for (i = 0; i < 16; i++) {
+        for (i = 0; i < stepsPerMM; i++) {
             backwardStep(tempaxis);
         }
     }
