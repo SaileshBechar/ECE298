@@ -17,13 +17,9 @@
  * return: void when the move is complete
  */
 
-// Initialize motors
-StepperMotor xMotor = {UP, 0, 1};
-StepperMotor yMotor = {LEFT, 0, 1};
 
 const int xBacklashSteps = 0;
 const int yBacklashSteps = 0;
-const int stepsPerMM = 16;
 
 void move(Axis axis, Direction direction, int steps){
     // Return if incorrect axis, direction combo
@@ -74,10 +70,23 @@ void forwardStep(Axis axis){
     if(axis == X){
         GPIO_setOutputHighOnPin(STEPPER_EnX_ENY_PORT, STEPPER_EnX_ENY_PIN);
         xMotor.curPos++;
+        xMotorCounter++;
     }else if(axis == Y){
         GPIO_setOutputLowOnPin(STEPPER_EnX_ENY_PORT, STEPPER_EnX_ENY_PIN);
         yMotor.curPos++;
+        yMotorCounter++;
     }
+
+    if (xMotorCounter == stepsPerMM ) {
+        current_coordinate.x++;
+        xMotorCounter = 0;
+    }
+    if (yMotorCounter == stepsPerMM ) {
+       current_coordinate.y++;
+       yMotorCounter = 0;
+   }
+
+    displayCoordinates(current_coordinate);
 
     while(phase <= 4){
         switch(phase){
@@ -139,10 +148,22 @@ void backwardStep(Axis axis){
     if(axis == X){
         GPIO_setOutputHighOnPin(STEPPER_EnX_ENY_PORT, STEPPER_EnX_ENY_PIN);
         xMotor.curPos--;
+        xMotorCounter++;
     }else if(axis == Y){
         GPIO_setOutputLowOnPin(STEPPER_EnX_ENY_PORT, STEPPER_EnX_ENY_PIN);
         yMotor.curPos--;
+        yMotorCounter++;
     }
+
+    if (xMotorCounter == stepsPerMM ) {
+        current_coordinate.x--;
+        xMotorCounter = 0;
+    }
+    if (yMotorCounter == stepsPerMM ) {
+       current_coordinate.y--;
+       yMotorCounter = 0;
+   }
+    displayCoordinates(current_coordinate);
 
     while(phase <= 4){
         switch(phase){
@@ -215,8 +236,8 @@ void pointToPoint(int xDestination, int yDestination){
     int iterations;
 
     // Convert mm destination to steps
-    xSteps = (xDestination * stepsPerMM) - xMotor.curPos;
-    ySteps = (yDestination * stepsPerMM) - yMotor.curPos;
+    xSteps = (xDestination * stepsPerMM ) - xMotor.curPos;
+    ySteps = (yDestination * stepsPerMM ) - yMotor.curPos;
 
     // Setup directions
     xDir = RIGHT;
@@ -259,6 +280,3 @@ void pointToPoint(int xDestination, int yDestination){
     move(X, xDir, xLeftoverSteps);
     move(Y, yDir, yLeftoverSteps);
 }
-
-
-
