@@ -24,5 +24,9 @@ void backwardStep(Axis);
 void takeUpBacklash(Axis, Direction);
 void pointToPoint(int, int);
 
+// Initialize motors
+StepperMotor xMotor;
+StepperMotor yMotor;
+
 
 #endif /* CODESHELLV8_3_STEPPERMOTOR_H_ */
