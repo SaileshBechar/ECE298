@@ -25,27 +25,10 @@ char temp_buf[6] = {0};
 volatile unsigned char curr_buf_pos = 0;
 volatile int8_t Stepper_EnA_ENB = 0;
 
-bool print_toggle = false;
-
-typedef struct buffer {
-    int x;
-    int y;
-} COORDINATE;
-
 COORDINATE input_coordinates[MAX_INPUT_SIZE];
 unsigned char first_element_pos = 0;
 unsigned char last_element_pos = 0;
 int coordinate_size = 0;
-
-COORDINATE current_coordinate;
-
-void handleUART();
-int inputToCoor(char* input, int num_bytes_to_copy);
-int insertCoordinate(int num, char pos);
-int removeCoordinate(COORDINATE* coordinate);
-void displayCoordinates(COORDINATE curr_coordinate);
-void jog();
-int fetch_coordinate(COORDINATE* curr_pos);
 
 void main(void)
 {
@@ -90,8 +73,21 @@ void main(void)
 
     clearLCD();
 
-    current_coordinate.x = 0;
-    current_coordinate.y = 0;
+    current_coordinate.x = 555;
+    current_coordinate.y = 555;
+
+    // Initialize motors
+    xMotor.lastDir = UP;
+    xMotor.curPos = 0;
+    xMotor.stepRatio = 1;
+
+    yMotor.lastDir = LEFT;
+    yMotor.curPos = 0;
+    yMotor.stepRatio = 1;
+
+    stepsPerMM = 16;
+    xMotorCounter = 0;
+    yMotorCounter = 0;
 
     while(1){
 
@@ -170,8 +166,8 @@ void waitForButtonRelease(uint8_t port, uint16_t pin, int currentState){
  */
 void runStepper(){
     COORDINATE destination;
-    destination.x = 0;
-    destination.y = 0;
+    xMotor.curPos = current_coordinate.x;
+    yMotor.curPos = current_coordinate.y;
     if (coor_recieved != 'E') {
         return;
     }
@@ -180,35 +176,37 @@ void runStepper(){
         displayText("START");
         z++;
     }
-    int i;
     while (coordinate_size > 0){
         removeCoordinate(&destination);
 
-//        pointToPoint(destination.x, destination.y);
-        while (current_coordinate.x != destination.x || current_coordinate.y != destination.y) {
-           if (current_coordinate.x < destination.x) {
-               current_coordinate.x++;
-           } else if (current_coordinate.x > destination.x) {
-               current_coordinate.x--;
-           }
-           if (current_coordinate.y < destination.y) {
-              current_coordinate.y++;
-          } else if (current_coordinate.y > destination.y) {
-              current_coordinate.y--;
-          }
-
-           int x = 0;
-           while (x < 10) {
-               displayCoordinates(current_coordinate);
-               x++;
-           }
-
-        }
+        xMotorCounter = 0;
+        yMotorCounter = 0;
+        pointToPoint(destination.x, destination.y);
+//        while (current_coordinate.x != destination.x || current_coordinate.y != destination.y) {
+//           if (current_coordinate.x < destination.x) {
+//               current_coordinate.x++;
+//           } else if (current_coordinate.x > destination.x) {
+//               current_coordinate.x--;
+//           }
+//           if (current_coordinate.y < destination.y) {
+//              current_coordinate.y++;
+//          } else if (current_coordinate.y > destination.y) {
+//              current_coordinate.y--;
+//          }
+//
+//           int x = 0;
+//           while (x < 10) {
+//               displayCoordinates(current_coordinate);
+//               x++;
+//           }
+//
+//        }
         char msg[20];
-       sprintf(msg, "X %d Y %d", current_coordinate.x, current_coordinate.y);
+       sprintf(msg, "X %d Y %d", destination.x, destination.y);
        displayScrollText(msg);
 
     }
+    displayScrollText("FINISHED COORDINATES");
     return;
 }
 
@@ -240,36 +238,22 @@ void displayText(char *msg){
  * Uses arrow keys to move stepper motors
  */
 void jog() {
-    COORDINATE curr_pos;
-    curr_pos.x = 0;
-    curr_pos.y = 0;
-    char temp_coord[6] = {0};
-    int temp_int = 0;
-    int update_text = 0;
+    displayCoordinates(current_coordinate);
+    xMotor.curPos = current_coordinate.x;
+    yMotor.curPos = current_coordinate.y;
     while (1) {
+
+        if (coor_recieved == 'Z') {
+            current_coordinate.x = 0;
+            current_coordinate.y = 0;
+            xMotor.curPos = 0;
+            yMotor.curPos = 0;
+            displayCoordinates(current_coordinate);
+        }
         coor_recieved = 0;
 
-        update_text = fetch_coordinate(&curr_pos);
+        fetch_coordinate(&current_coordinate);
 
-
-        if (update_text) {
-            temp_int = curr_pos.x;
-            temp_coord[2] = temp_int % 10 + '0';
-            temp_int /= 10;
-            temp_coord[1] = temp_int % 10 + '0';
-            temp_int /= 10;
-            temp_coord[0] = temp_int % 10 + '0';
-
-            temp_int = curr_pos.y;
-            temp_coord[5] = temp_int % 10 + '0';
-            temp_int /= 10;
-            temp_coord[4] = temp_int % 10 + '0';
-            temp_int /= 10;
-            temp_coord[3] = temp_int % 10 + '0';
-        }
-
-
-        displayText(temp_coord);
         if(changeMode == 1){
             break;
         }
@@ -281,18 +265,39 @@ void jog() {
  *
  */
 int fetch_coordinate(COORDINATE* curr_pos) {
-
-    if (coor_recieved == 'A') {
-        curr_pos->y++;
+    Axis tempaxis;
+    int i = 0;
+    if (coor_recieved == 'W') {
+        tempaxis = Y;
+        xMotorCounter = 0;
+        yMotorCounter = 0;
+        for (i = 0; i < 16; i++) {
+            forwardStep(tempaxis);
+        }
     }
-    else if (coor_recieved == 'B') {
-        curr_pos->y--;
-    }
-    else if (coor_recieved == 'C') {
-        curr_pos->x++;
+    else if (coor_recieved == 'S') {
+        tempaxis = Y;
+        xMotorCounter = 0;
+        yMotorCounter = 0;
+        for (i = 0; i < 16; i++) {
+            backwardStep(tempaxis);
+        }
     }
     else if (coor_recieved == 'D') {
-        curr_pos->x--;
+        tempaxis = X;
+        xMotorCounter = 0;
+        yMotorCounter = 0;
+        for (i = 0; i < 16; i++) {
+            forwardStep(tempaxis);
+        }
+    }
+    else if (coor_recieved == 'A') {
+        tempaxis = X;
+        xMotorCounter = 0;
+        yMotorCounter = 0;
+        for (i = 0; i < 16; i++) {
+            backwardStep(tempaxis);
+        }
     }
     else {
         return 0;
@@ -308,6 +313,9 @@ int fetch_coordinate(COORDINATE* curr_pos) {
 void displayUART() {
     while (coor_recieved == 0) {
         displayText("COORS");
+        if(changeMode == 1){
+            break;
+        }
     }
     while (1) {
         displayText(temp_buf);
@@ -551,10 +559,6 @@ void EUSCIA0_ISR(void)
     {
         if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == 'N') {
            changeMode = 1;
-        }
-        else if (EUSCI_A_UART_receiveData(EUSCI_A0_BASE) == 'P') {
-            coor_recieved = EUSCI_A_UART_receiveData(EUSCI_A0_BASE);
-            print_toggle = true;
         }
         else {
             coor_recieved = EUSCI_A_UART_receiveData(EUSCI_A0_BASE);
