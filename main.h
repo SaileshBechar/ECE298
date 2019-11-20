@@ -50,10 +50,28 @@
 #define ADC_IN_PIN      GPIO_PIN1
 #define ADC_IN_CHANNEL  ADC_INPUT_A9
 
+int stepsPerMM;
+int xMotorCounter;
+int yMotorCounter;
+
+typedef struct buffer {
+    int x;
+    int y;
+} COORDINATE;
+
+COORDINATE current_coordinate;
+
 void waitForButtonRelease(uint8_t, uint16_t, int);
 void runStepper();
 void displayUART();
 void displayText(char *);
+void handleUART();
+int inputToCoor(char* input, int num_bytes_to_copy);
+int insertCoordinate(int num, char pos);
+int removeCoordinate(COORDINATE* coordinate);
+void displayCoordinates(COORDINATE curr_coordinate);
+void jog();
+int fetch_coordinate(COORDINATE* curr_pos);
 
 void Init_GPIO(void);
 void Init_Clock(void);
