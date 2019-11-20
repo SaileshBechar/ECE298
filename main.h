@@ -51,8 +51,6 @@
 #define ADC_IN_CHANNEL  ADC_INPUT_A9
 
 int stepsPerMM;
-int xMotorCounter;
-int yMotorCounter;
 
 typedef struct buffer {
     int x;
