@@ -120,10 +120,10 @@ void forwardStep(Axis axis){
         }
     }
 
-    //GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-    //GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-    //GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-    //GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+//    GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+//    GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+//    GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+//    GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
 }
 
 /*
@@ -194,10 +194,10 @@ void backwardStep(Axis axis){
         }
     }
 
-    //GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
-    //GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
-    //GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
-    //GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
+//    GPIO_setOutputLowOnPin(STEPPER_A_PORT, STEPPER_A_PIN);
+//    GPIO_setOutputLowOnPin(STEPPER_B_PORT, STEPPER_B_PIN);
+//    GPIO_setOutputLowOnPin(STEPPER_C_PORT, STEPPER_C_PIN);
+//    GPIO_setOutputLowOnPin(STEPPER_D_PORT, STEPPER_D_PIN);
 }
 
 /*
@@ -246,29 +246,61 @@ void pointToPoint(int xDestination, int yDestination){
 
     // Determine step ratio, x:1 or 1:y, and leftover steps
     if(xSteps > ySteps){
-        stepRatio = xSteps/ySteps;
-        xLeftoverSteps = xSteps % stepRatio;
+        if (ySteps == 0) {
+            stepRatio = xSteps;
+        } else {
+            stepRatio = xSteps/ySteps;
+        }
+        xLeftoverSteps = xSteps % ySteps;
         yLeftoverSteps = 0;
         iterations = ySteps;
 
         xMotor.stepRatio = stepRatio;
         yMotor.stepRatio = 1;
     }else{
-        stepRatio = ySteps/xSteps;
+        if (xSteps == 0) {
+            stepRatio = ySteps;
+        } else {
+            stepRatio = ySteps/xSteps;
+        }
         xLeftoverSteps = 0;
-        yLeftoverSteps = ySteps % stepRatio;
+        yLeftoverSteps = ySteps % xSteps;
         iterations = xSteps;
 
         xMotor.stepRatio = 1;
         yMotor.stepRatio = stepRatio;
     }
-
+//    int minMultiple = (xSteps > ySteps) ? xSteps : ySteps;
+//    while(!(minMultiple%xSteps==0 && minMultiple%ySteps==0 )) {
+//        ++minMultiple;
+//    }
+//    long minMultiple;
+//    int gcd, i;
+//    for(i=1; i <= xSteps && i <= ySteps; ++i)
+//    {
+//       // Checks if i is factor of both integers
+//       if(xSteps%i==0 && ySteps%i==0)
+//           gcd = i;
+//    }
+//    minMultiple = (xSteps/gcd) * (ySteps/gcd);
+//
+//    if (xSteps == 0) {
+//        minMultiple = ySteps / stepsPerMM;
+//    }
+//    if (ySteps == 0) {
+//        minMultiple = xSteps / stepsPerMM;
+//    }
+//    iterations = minMultiple;
+//
+//    xMotor.stepRatio = xSteps / minMultiple;
+//    yMotor.stepRatio = ySteps / minMultiple;
     // Move
     int i;
     for(i = iterations; i > 0; i--){
         move(X, xDir, xMotor.stepRatio);
         move(Y, yDir, yMotor.stepRatio);
     }
+
     move(X, xDir, xLeftoverSteps);
     move(Y, yDir, yLeftoverSteps);
 }
